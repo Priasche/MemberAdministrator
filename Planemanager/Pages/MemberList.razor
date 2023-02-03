@@ -1,0 +1,123 @@
+﻿@page "/memberList"
+@inject HttpClient http
+
+@if (IsEdit == true)
+{
+    <h1>Editing</h1>
+}
+else
+{
+    <h1>Add</h1>
+}
+
+
+
+<EditForm class="mt-4" Model="@newMember" OnValidSubmit="() => AddMember()">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="form-group">
+        <label for="name">Firstname</label>
+        <InputText class="form-control" id="name" @bind-Value="newMember.FirstName" />
+    </div>
+    <div class="form-group">
+        <label for="name">Lastname</label>
+        <InputText class="form-control" id="name" @bind-Value="newMember.LastName" />
+    </div>
+    <div class="form-group">
+        <label for="name">Email</label>
+        <InputText class="form-control" id="name" @bind-Value="newMember.Email" />
+    </div>
+    <div class="form-group">
+        <label for="name">Phone number</label>
+        <InputText class="form-control" id="name" @bind-Value="newMember.PhoneNumber" />
+    </div>
+
+    @if (IsEdit == true)
+    {
+        <button type="submit" class="btn btn-primary mt-2 mb-4">Edit</button>
+    }
+    else
+    {
+        <button type="submit" class="btn btn-primary mt-2 mb-4">Add</button>
+    }
+</EditForm>
+
+
+<table class="table table-striped table-hover">
+    <tbody>
+        @foreach (var item in Members)
+        {
+            <tr>
+                <td>
+                    @item.FirstName
+                </td>
+                <td>
+                    @item.LastName
+                </td>
+                <td>
+                    @item.PhoneNumber
+                </td>
+                <td>
+                    @item.Email
+                </td>
+                <td>
+                    <button @onclick="()=>StartEdit(item.Id)" class="btn btn-warning">Edit</button>
+                </td>
+                <td>
+                    <button @onclick="()=>DeleteMember(item.Id)" class="btn btn-danger">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+
+@code {
+    public bool IsEdit { get; set; } = false;
+    public Member newMember { get; set; } = new Member();
+    public List<Member> Members { get; set; } = new List<Member>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Members = await http.GetFromJsonAsync<List<Member>>("/api/member");
+        StateHasChanged();
+    }
+
+    public void AddMember()
+    {
+        if (IsEdit == false)
+        {
+            http.PostAsJsonAsync("/api/member", newMember);
+            Members.Add(newMember);
+            newMember = new Member();
+        }
+        else
+        {
+            EditMember();
+        }
+    }
+    public void EditMember()
+    {
+        http.PutAsJsonAsync("/api/member", newMember);
+        var deleteMember = Members.FirstOrDefault(n => n.Id == newMember.Id);
+        Members.Remove(deleteMember);
+
+        Members.Add(newMember);
+        newMember = new Member();
+        IsEdit = false;
+    }
+    public void StartEdit(int id)
+    {
+        var editMember = Members.FirstOrDefault(n => n.Id == id);
+        newMember = editMember;
+        IsEdit = true;
+    }
+    public void DeleteMember(int id)
+    {
+        http.DeleteAsync("/api/member" + id);
+
+        var deleteMember = Members.FirstOrDefault(n => n.Id == id);
+        Members.Remove(deleteMember);
+    }
+}
